@@ -1,0 +1,96 @@
+-- HouseCup Live demo seed. Run ONCE on an empty, migrated database:
+--   npm run db:seed:local   (or db:seed:remote)
+-- Judge tokens and PINs are generated randomly here; read them in /admin (or rotate them).
+-- Re-running fails on UNIQUE constraints by design (it never overwrites real data).
+
+INSERT INTO default_houses (id, name, short_name, color_hex, icon_key, sort_order, created_at) VALUES
+  (1, 'Phoenix', 'PHN', '#E63946', 'flame', 0, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2592000000),
+  (2, 'Titans', 'TTN', '#1D4ED8', 'shield', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2592000000),
+  (3, 'Orion', 'ORN', '#F59E0B', 'star', 2, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2592000000),
+  (4, 'Zephyr', 'ZPH', '#10B981', 'wind', 3, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2592000000);
+
+INSERT INTO events (id, name, slug, category, status, is_featured, counts_toward_season, theme_mode, announcement_text, judge_token, judge_pin, created_at)
+VALUES (1, 'Annual Sports Day', 'annual-sports-day', 'sports', 'active', 1, 1, 'daylight',
+        'Lunch break 12:30–13:15 · 4×100m Relay finals at 14:00 on Track A',
+        lower(hex(randomblob(16))), printf('%04d', abs(random()) % 10000), (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000);
+INSERT INTO events (id, name, slug, category, status, is_featured, counts_toward_season, theme_mode, announcement_text, judge_token, judge_pin, created_at)
+VALUES (2, 'Esports & Chess Invitational', 'esports-chess-invitational', 'esports', 'active', 0, 0, 'arena',
+        'Valorant Grand Final 16:00 in the Main Hall · Chess Rd 4 pairings on the board',
+        lower(hex(randomblob(16))),
+        printf('%04d', (CAST((SELECT judge_pin FROM events WHERE id = 1) AS INTEGER) + 1 + abs(random()) % 9998) % 10000),
+        (CAST(strftime('%s','now') AS INTEGER) * 1000) - 12000000);
+
+INSERT INTO event_teams (id, event_id, house_id, name, short_name, color_hex, sort_order, created_at) VALUES
+  (1, 1, 1, 'Phoenix', 'PHN', '#E63946', 0, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (2, 1, 2, 'Titans', 'TTN', '#1D4ED8', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (3, 1, 3, 'Orion', 'ORN', '#F59E0B', 2, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (4, 1, 4, 'Zephyr', 'ZPH', '#10B981', 3, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (5, 2, NULL, 'Nightfall', 'NGT', '#7C3AED', 0, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (6, 2, NULL, 'Cobalt Club', 'CC', '#0EA5E9', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (7, 2, NULL, 'Vertex Academy', 'VA', '#EC4899', 2, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (8, 2, NULL, 'Ember Esports', 'EE', '#F97316', 3, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (9, 2, NULL, 'Grade 10 Strategists', 'G10S', '#84CC16', 4, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000),
+  (10, 2, NULL, 'Riverside High', 'RH', '#14B8A6', 5, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 14400000);
+
+INSERT INTO score_events (event_id, event_team_id, points, label, judge_name, batch_id, request_id, is_reverted, reverted_at, created_at) VALUES
+  (1, 1, 10, '100m Sprint (Boys)', 'Coach Rivera', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 12000000),
+  (1, 2, 7, '100m Sprint (Boys)', 'Coach Rivera', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 12000000),
+  (1, 3, 5, '100m Sprint (Boys)', 'Coach Rivera', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 12000000),
+  (1, 4, 3, '100m Sprint (Boys)', 'Coach Rivera', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 12000000),
+  (1, 2, 10, '100m Sprint (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 11280000),
+  (1, 4, 7, '100m Sprint (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 11280000),
+  (1, 1, 5, '100m Sprint (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 11280000),
+  (1, 3, 3, '100m Sprint (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 11280000),
+  (1, 3, 10, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000003:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10500000),
+  (1, 1, 7, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000003:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10500000),
+  (1, 4, 5, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000003:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10500000),
+  (1, 2, 3, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000003:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10500000),
+  (1, 3, 10, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000004:3', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10320000, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10380000),
+  (1, 1, 7, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000004:1', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10320000, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10380000),
+  (1, 4, 5, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000004:4', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10320000, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10380000),
+  (1, 2, 3, 'Long Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000004:2', 1, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10320000, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10380000),
+  (1, 2, 10, 'Shot Put', 'Mr. Okafor', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (1, 3, 7, 'Shot Put', 'Mr. Okafor', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (1, 1, 5, 'Shot Put', 'Mr. Okafor', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (1, 4, 3, 'Shot Put', 'Mr. Okafor', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (1, 1, 5, 'Tug of War R1', 'Ms. Lim', '00000000-0000-4000-8000-000000000006', '00000000-0000-4000-8000-000000000006:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9000000),
+  (1, 4, 5, 'Tug of War R1', 'Ms. Lim', '00000000-0000-4000-8000-000000000007', '00000000-0000-4000-8000-000000000007:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 8760000),
+  (1, 1, 10, 'Tug of War Final', 'Ms. Lim', '00000000-0000-4000-8000-000000000008', '00000000-0000-4000-8000-000000000008:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 8400000),
+  (1, 3, 3, 'Sportsmanship Bonus', 'Ms. Lim', '00000000-0000-4000-8000-000000000009', '00000000-0000-4000-8000-000000000009:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7860000),
+  (1, 4, 10, '400m Relay', 'Coach Rivera', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000010:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7200000),
+  (1, 2, 7, '400m Relay', 'Coach Rivera', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000010:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7200000),
+  (1, 1, 5, '400m Relay', 'Coach Rivera', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000010:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7200000),
+  (1, 3, 3, '400m Relay', 'Coach Rivera', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000010:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7200000),
+  (1, 2, -2, 'Penalty — false start', 'Coach Rivera', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000011:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7080000),
+  (1, 1, 10, 'High Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000012:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 5700000),
+  (1, 4, 7, 'High Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000012:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 5700000),
+  (1, 2, 5, 'High Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000012:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 5700000),
+  (1, 3, 3, 'High Jump', 'Ms. Tan', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000012:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 5700000),
+  (1, 3, 10, 'Cheer Squad', 'Mr. Okafor', '00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000013:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4200000),
+  (1, 1, 5, 'Cheer Squad', 'Mr. Okafor', '00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000013:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4200000),
+  (1, 2, 5, 'Cheer Squad', 'Mr. Okafor', '00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000013:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4200000),
+  (1, 4, 5, 'Cheer Squad', 'Mr. Okafor', '00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000013:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4200000),
+  (1, 4, 10, '800m (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000014', '00000000-0000-4000-8000-000000000014:4', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2460000),
+  (1, 3, 7, '800m (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000014', '00000000-0000-4000-8000-000000000014:3', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2460000),
+  (1, 2, 5, '800m (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000014', '00000000-0000-4000-8000-000000000014:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2460000),
+  (1, 1, 3, '800m (Girls)', 'Coach Rivera', '00000000-0000-4000-8000-000000000014', '00000000-0000-4000-8000-000000000014:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 2460000),
+  (1, 2, 5, 'Sack Race (Grade 7)', 'Ms. Lim', '00000000-0000-4000-8000-000000000015', '00000000-0000-4000-8000-000000000015:2', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 720000),
+  (1, 1, 3, 'Sack Race (Grade 7)', 'Ms. Lim', '00000000-0000-4000-8000-000000000015', '00000000-0000-4000-8000-000000000015:1', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 720000),
+  (2, 5, 3, 'Valorant Group A', 'Mr. Chen', '00000000-0000-4000-8000-000000000016', '00000000-0000-4000-8000-000000000016:5', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10800000),
+  (2, 6, 3, 'Valorant Group A', 'Mr. Chen', '00000000-0000-4000-8000-000000000017', '00000000-0000-4000-8000-000000000017:6', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10560000),
+  (2, 7, 3, 'CS2 Quarterfinal', 'Mr. Chen', '00000000-0000-4000-8000-000000000018', '00000000-0000-4000-8000-000000000018:7', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 10200000),
+  (2, 9, 2, 'Chess Rd 1', 'Ms. Haddad', '00000000-0000-4000-8000-000000000019', '00000000-0000-4000-8000-000000000019:9', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (2, 10, 1, 'Chess Rd 1', 'Ms. Haddad', '00000000-0000-4000-8000-000000000019', '00000000-0000-4000-8000-000000000019:10', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (2, 7, 1, 'Chess Rd 1', 'Ms. Haddad', '00000000-0000-4000-8000-000000000019', '00000000-0000-4000-8000-000000000019:7', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 9600000),
+  (2, 10, 2, 'Chess Rd 2', 'Ms. Haddad', '00000000-0000-4000-8000-000000000020', '00000000-0000-4000-8000-000000000020:10', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 8400000),
+  (2, 5, 2, 'Chess Rd 2', 'Ms. Haddad', '00000000-0000-4000-8000-000000000020', '00000000-0000-4000-8000-000000000020:5', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 8400000),
+  (2, 8, 3, 'FIFA Semi', 'Mr. Chen', '00000000-0000-4000-8000-000000000021', '00000000-0000-4000-8000-000000000021:8', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 7680000),
+  (2, 6, 3, 'MLBB Upper Bracket', 'Mr. Chen', '00000000-0000-4000-8000-000000000022', '00000000-0000-4000-8000-000000000022:6', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 6900000),
+  (2, 5, 5, 'Valorant Semi', 'Mr. Chen', '00000000-0000-4000-8000-000000000023', '00000000-0000-4000-8000-000000000023:5', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 5880000),
+  (2, 9, 2, 'Chess Rd 3', 'Ms. Haddad', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000024:9', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4800000),
+  (2, 6, 1, 'Chess Rd 3', 'Ms. Haddad', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000024:6', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4800000),
+  (2, 8, 1, 'Chess Rd 3', 'Ms. Haddad', '00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000024:8', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 4800000),
+  (2, 8, 3, 'MLBB Lower Bracket', 'Mr. Chen', '00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000025:8', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 3300000),
+  (2, 10, 2, 'Fair Play Bonus', 'Ms. Haddad', '00000000-0000-4000-8000-000000000026', '00000000-0000-4000-8000-000000000026:10', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 1800000),
+  (2, 7, 5, 'FIFA Final', 'Mr. Chen', '00000000-0000-4000-8000-000000000027', '00000000-0000-4000-8000-000000000027:7', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 540000),
+  (2, 8, 2, 'FIFA Final', 'Mr. Chen', '00000000-0000-4000-8000-000000000027', '00000000-0000-4000-8000-000000000027:8', 0, NULL, (CAST(strftime('%s','now') AS INTEGER) * 1000) - 540000);

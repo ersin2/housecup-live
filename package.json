@@ -1,0 +1,17 @@
+{
+  "name": "housecup-live",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "worker"
+  ],
+  "scripts": {
+    "test": "npm run test -w worker",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w worker"
+  },
+  "allowScripts": {
+    "workerd@1.20261123.1": true,
+    "esbuild@0.28.2": true
+  }
+}

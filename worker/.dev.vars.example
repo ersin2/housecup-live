@@ -1,0 +1,3 @@
+ADMIN_PASSCODE=change-me-long-passphrase
+# 32+ random bytes, e.g. node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+SESSION_SECRET=replace-with-random-secret

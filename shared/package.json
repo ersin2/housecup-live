@@ -1,0 +1,15 @@
+{
+  "name": "@housecup/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./ranking": "./src/ranking.ts",
+    "./color": "./src/color.ts",
+    "./naming": "./src/naming.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit -p ." },
+  "dependencies": { "zod": "4.6.7" }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "housecup-live",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+
+  // The SPA is served as free static assets; only /api/* invokes the Worker.
+  "assets": {
+    "directory": "../web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "housecup",
+      // Replaced in Phase 4 with the id printed by `wrangler d1 create housecup`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "SCORE_HUB", "class_name": "ScoreHub" },
+      { "name": "GUARD", "class_name": "Guard" }
+    ]
+  },
+  // Workers Free plan: only SQLite-backed Durable Objects are available.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ScoreHub", "Guard"] }],
+
+  "vars": {
+    "SCHOOL_TZ": "Asia/Kuala_Lumpur",
+    "ALLOWED_ORIGINS": ""
+  }
+  // Secrets (never committed): ADMIN_PASSCODE, SESSION_SECRET
+  //   local:  worker/.dev.vars     remote: wrangler secret put <NAME>
+}
