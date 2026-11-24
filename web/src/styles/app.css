@@ -1,0 +1,214 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+
+/* ------------------------------------------------------------------ tokens
+   Daylight: pure white paper, pure black ink, vivid team fills — legible in midday sun.
+   Arena: blue-black obsidian with glass rules; team colors glow. */
+
+:root,
+[data-theme='daylight'] {
+  --paper: #ffffff;
+  --ink: #000000;
+  --muted: #4a5163;
+  --rule: #d6d9e0;
+  --raise: #f2f3f6;
+  --sunk: #e7e9ee;
+  --ok: #0a8f3c;
+  --danger: #c8102e;
+  --glow-strength: 0;
+  color-scheme: light;
+}
+
+[data-theme='arena'] {
+  --paper: #070a12;
+  --ink: #f2f4f8;
+  --muted: #8b94a7;
+  --rule: rgb(255 255 255 / 0.09);
+  --raise: #0d1220;
+  --sunk: #151b2c;
+  --ok: #22c55e;
+  --danger: #fb4565;
+  --glow-strength: 1;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-raise: var(--raise);
+  --color-sunk: var(--sunk);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --font-sans: 'Archivo Variable', 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@custom-variant arena (&:where([data-theme='arena'], [data-theme='arena'] *));
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-stretch: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+/* ------------------------------------------------------------------ type */
+
+.wide {
+  font-stretch: 125%;
+}
+.semiwide {
+  font-stretch: 112%;
+}
+.narrow {
+  font-stretch: 80%;
+}
+/* Every score, delta and rank: tabular so nothing jitters while counting. */
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+  font-stretch: 112%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ motion */
+
+@keyframes hc-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--team) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px color-mix(in srgb, var(--team) 0%, transparent);
+  }
+}
+.hc-pulse {
+  animation: hc-pulse 900ms ease-out 2;
+}
+
+@keyframes hc-slide-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.hc-slide-in {
+  animation: hc-slide-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes hc-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.hc-sheet-in {
+  animation: hc-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes hc-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes hc-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.hc-ticker {
+  animation: hc-ticker var(--ticker-duration, 40s) linear infinite;
+}
+
+@keyframes hc-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+.hc-live-dot {
+  animation: hc-blink 1.6s ease-in-out infinite;
+}
+
+/* Team glow only exists in Arena. */
+.team-glow {
+  box-shadow: 0 0 calc(28px * var(--glow-strength)) calc(-6px * var(--glow-strength))
+    color-mix(in srgb, var(--team) calc(85% * var(--glow-strength)), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ utilities */
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.press {
+  transition: transform 80ms ease-out;
+}
+.press:active {
+  transform: scale(0.95);
+}
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------------ print (A4 judge cards) */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}

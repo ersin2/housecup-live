@@ -8,18 +8,40 @@ worker/   Hono API + D1 + Durable Objects (ScoreHub live fan-out, Guard login th
 web/      React SPA (Phase 3). The Worker serves web/dist as free static assets.
 ```
 
-## Local development (backend)
+## Local development
 
 ```bash
 npm install
 npm approve-scripts workerd esbuild   # npm 11 blocks install scripts by default
 cp worker/.dev.vars.example worker/.dev.vars   # then set ADMIN_PASSCODE and SESSION_SECRET
 
-cd worker
-npm run db:migrate:local
-npm run db:seed:local        # demo data: 4 houses, Sports Day (daylight), Esports & Chess (arena)
-npm run dev                  # http://localhost:8787/api/health
-npm test                     # 56 tests, run inside the Workers runtime against real D1
+npm run db:migrate:local -w worker
+npm run db:seed:local -w worker    # demo data: 4 houses, Sports Day (Daylight), Esports & Chess (Arena)
+
+# Terminal 1: API + Durable Objects
+npm run dev                         # Wrangler on http://127.0.0.1:8787
+
+# Terminal 2: React app with hot reload
+npm run dev:web                     # Vite on http://localhost:5173 (proxies /api, including WebSockets)
+```
+
+Open <http://localhost:5173> for the scoreboard, `/judge` for the Judge Pad, and `/admin` for the Control Center (passcode from `.dev.vars`).
+
+The Vite proxy rewrites `Origin` to the Worker's own origin. That makes the Worker's same-origin check, the `SameSite=Strict` cookies and the WebSocket upgrade behave exactly as they do in production.
+
+### Testing on a real phone over Wi-Fi
+
+1. Run `npm run dev:web -- --host`.
+2. Open `http://<your-PC-LAN-IP>:5173/judge` on the phone.
+
+The judge cookie is `Secure`, so most phone browsers only keep it over HTTPS or on `localhost`. To test fully on a phone, use the deployed `*.workers.dev` URL (Phase 4), or a tunnel such as `cloudflared tunnel --url http://localhost:5173`.
+
+### Production build
+
+```bash
+npm run build      # typechecks, then writes the SPA to web/dist
+npm run dev        # Wrangler now also serves web/dist on :8787 (one origin, like production)
+npm test           # 56 Worker tests inside the Workers runtime against real D1
 ```
 
 To find the demo judge PINs:
