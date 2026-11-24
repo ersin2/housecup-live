@@ -492,6 +492,19 @@ adminRoutes.put('/events/:id/teams/order', zv('json', OrderInput), async (c) => 
   return c.json({ event: await adminEvent(db, event) });
 });
 
+// ---------------------------------------------------------------- live screens
+
+/**
+ * Rebuild every public snapshot (Season Cup + each event) from D1 and push it to live screens.
+ * Needed after changing data outside the app, e.g. the pre-event demo wipe via `wrangler d1 execute`.
+ */
+adminRoutes.post('/republish', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT id FROM events').all<{ id: number }>();
+  for (const e of results) await schedulePublish(c, e.id, { season: false });
+  await schedulePublish(c, null, { season: true });
+  return c.json({ ok: true, events: results.length });
+});
+
 // ---------------------------------------------------------------- ledger & export
 
 adminRoutes.get('/events/:id/ledger', zv('query', LedgerQuery), async (c) => {

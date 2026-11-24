@@ -6,6 +6,7 @@ import { Keypad, Sheet, type KeypadKey } from '../../components/ui.tsx';
 import { useDocumentTheme, useDocumentTitle } from '../../lib/theme.ts';
 import { clock, cx, haptic, signed } from '../../lib/util.ts';
 import { Score } from '../scoreboard/parts.tsx';
+import { useLiveScoreboard } from '../../hooks/useLiveScoreboard.ts';
 import { useJudge, type Toast } from './useJudge.ts';
 
 const CHIPS = [1, 3, 5, 10];
@@ -138,6 +139,14 @@ function JudgePad({ j }: { j: J }) {
   const [menu, setMenu] = useState(false);
   const hasPending = j.pendingAwards.length > 0;
   const many = state.teams.length > 4;
+  const frozen = state.event.is_frozen;
+
+  // Same WebSocket push the scoreboard uses: live totals, renames, late teams, freeze flag.
+  const live = useLiveScoreboard({ kind: 'event', slug: state.event.slug });
+  const { syncLive } = j;
+  useEffect(() => {
+    if (live.data) syncLive(live.data);
+  }, [live.data, syncLive]);
 
   return (
     <div className="min-h-dvh bg-white text-black">
@@ -158,9 +167,10 @@ function JudgePad({ j }: { j: J }) {
       </header>
 
       <main className={cx('mx-auto max-w-5xl px-3 pt-3', drawer ? 'pb-[26rem]' : 'pb-48')}>
-        {state.event.is_frozen && (
+        {frozen && (
           <p className="mb-3 rounded-xl border-2 border-black px-4 py-2.5 text-[15px] font-semibold">
-            Mystery mode is on. The public board shows scores from {state.event.frozen_at ? clock(state.event.frozen_at) : 'the freeze'}. Keep scoring as normal.
+            Mystery mode is on. Totals are hidden here and on the public board until the reveal, so nobody can peek at your
+            screen. Keep scoring as normal; every save is still confirmed.
           </p>
         )}
 
@@ -178,6 +188,7 @@ function JudgePad({ j }: { j: J }) {
               onBump={(n) => j.bump(t.id, n)}
               onReset={() => j.setDelta(t.id, 0)}
               onKeypad={() => setKeypadTeam(t)}
+              hideTotal={frozen}
             />
           ))}
         </section>
@@ -277,23 +288,31 @@ function TeamCard({
   onBump,
   onReset,
   onKeypad,
+  hideTotal,
 }: {
   team: TeamWithTotalDTO;
   delta: number;
   onBump: (n: number) => void;
   onReset: () => void;
   onKeypad: () => void;
+  hideTotal: boolean;
 }) {
   const fg = onColor(team.color_hex);
   const active = delta !== 0;
   return (
     <article
       className={cx('overflow-hidden rounded-2xl border-[3px]', active ? 'border-black' : 'border-transparent')}
-      aria-label={`${team.name}, ${team.total} points`}
+      aria-label={hideTotal ? `${team.name}, total hidden during Mystery mode` : `${team.name}, ${team.total} points`}
     >
       <div className="flex min-h-15 items-center gap-3 py-1.5 pr-1.5 pl-4" style={{ background: team.color_hex, color: fg }}>
         <h2 className="semiwide min-w-0 flex-1 truncate text-xl leading-tight font-black">{team.name}</h2>
-        <Score value={team.total} className="text-[28px] leading-none font-black" />
+        {hideTotal ? (
+          <span aria-hidden className="num text-[28px] leading-none font-black opacity-60">
+            ••
+          </span>
+        ) : (
+          <Score value={team.total} className="text-[28px] leading-none font-black" />
+        )}
         <button
           type="button"
           onClick={onKeypad}

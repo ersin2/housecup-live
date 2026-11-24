@@ -37,10 +37,34 @@ export class ScoreHub extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  /** RPC: store the latest public snapshot and fan it out. Outgoing messages are not billed. */
-  async publish(message: string): Promise<number> {
-    this.ctx.storage.kv.put(SNAPSHOT_KEY, message);
-    return this.broadcast(message);
+  private loop: Promise<void> | null = null;
+  private dirty = false;
+
+  /**
+   * RPC: "public data changed for <scope>". The hub rebuilds the snapshot from D1 itself and
+   * fans it out (outgoing messages are not billed). Signals arriving while a rebuild is running
+   * are coalesced into one more rebuild, so the final broadcast always reflects the latest write
+   * — two near-simultaneous saves can never leave screens on an older snapshot.
+   */
+  async refresh(scope: string): Promise<void> {
+    this.dirty = true;
+    if (!this.loop) {
+      this.loop = (async () => {
+        try {
+          while (this.dirty) {
+            this.dirty = false;
+            const snapshot = await this.buildSnapshot(scope);
+            if (snapshot) {
+              this.ctx.storage.kv.put(SNAPSHOT_KEY, snapshot);
+              this.broadcast(snapshot);
+            }
+          }
+        } finally {
+          this.loop = null;
+        }
+      })();
+    }
+    return this.loop;
   }
 
   /** RPC (tests/ops): number of connected sockets. */

@@ -31,6 +31,7 @@ export function rankStandings(rows: RankInput[]): StandingDTO[] {
       rank,
       gap_to_leader: leader - r.total,
       bar_pct: bar,
+      sort_order: r.sort_order,
     };
   });
 }

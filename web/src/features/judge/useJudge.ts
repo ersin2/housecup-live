@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BatchDTO, ChangeResponse, JudgeState, LedgerPage, SaveBatchResponse } from '@housecup/shared/types';
+import type { BatchDTO, ChangeResponse, JudgeState, LedgerPage, PublicScoreboard, SaveBatchResponse, TeamWithTotalDTO } from '@housecup/shared/types';
 import { api, errorMessage, HttpError, isRetryable } from '../../lib/api.ts';
 import { loadOutbox, saveOutbox, type PendingBatch } from '../../lib/outbox.ts';
 import { store, uuid } from '../../lib/util.ts';
@@ -16,7 +16,6 @@ export interface Toast {
 }
 
 const NAME_KEY = 'hc.judgeName';
-const REFRESH_MS = 10_000;
 const RETRY_MS = 8_000;
 
 export function useJudge(initialToken: string | null, clearToken: () => void) {
@@ -109,12 +108,36 @@ export function useJudge(initialToken: string | null, clearToken: () => void) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // No /state polling: live totals, team names/colors, late-entry teams and the freeze flag
+  // arrive through the event's WebSocket push (see syncLive). Polling a ledger SUM every few
+  // seconds per judge would exhaust D1's free 5M rows-read/day on a busy event.
   useEffect(() => {
-    if (phase.kind !== 'ready') return;
-    void loadRecent();
-    const id = setInterval(() => document.visibilityState === 'visible' && void refresh(), REFRESH_MS);
-    return () => clearInterval(id);
-  }, [phase.kind, refresh, loadRecent]);
+    if (phase.kind === 'ready') void loadRecent();
+  }, [phase.kind, loadRecent]);
+
+  /** Merge a public snapshot into the pad: stable card order, live names/colors/totals. */
+  const syncLive = useCallback((sb: PublicScoreboard) => {
+    setState((s) => {
+      if (!s || sb.scope !== 'event' || sb.event?.slug !== s.event.slug) return s;
+      const teams: TeamWithTotalDTO[] = sb.standings
+        .map((t) => ({
+          id: t.team_id,
+          event_id: s.event.id,
+          house_id: t.house_id,
+          name: t.name,
+          short_name: t.short_name,
+          color_hex: t.color_hex,
+          sort_order: t.sort_order,
+          total: t.total,
+        }))
+        .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
+      return {
+        ...s,
+        teams,
+        event: { ...s.event, name: sb.event.name, is_frozen: sb.event.is_frozen, frozen_at: sb.event.frozen_at },
+      };
+    });
+  }, []);
 
   // ---------------------------------------------------------------- auth
   const login = useCallback(async (pin: string) => {
@@ -297,5 +320,6 @@ export function useJudge(initialToken: string | null, clearToken: () => void) {
     judgeName,
     setJudgeName,
     refresh,
+    syncLive,
   };
 }

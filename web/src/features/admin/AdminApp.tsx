@@ -154,7 +154,39 @@ function Dashboard() {
       )}
       <EventList title="Running" events={active} />
       {archived.length > 0 && <EventList title="Archived" events={archived} />}
+      <RefreshScreens />
     </div>
+  );
+}
+
+/** After changing data outside the app (e.g. the pre-event wipe), push fresh scores to every screen. */
+function RefreshScreens() {
+  const [state, setState] = useState<'idle' | 'busy' | 'done' | string>('idle');
+  return (
+    <section className="flex flex-wrap items-center gap-3 border-t border-rule pt-4 text-sm text-muted">
+      <Button
+        variant="secondary"
+        disabled={state === 'busy'}
+        onClick={async () => {
+          setState('busy');
+          try {
+            await adminApi('/republish', { method: 'POST' });
+            setState('done');
+          } catch (e) {
+            setState(errorMessage(e));
+          }
+        }}
+      >
+        Refresh all live screens
+      </Button>
+      <span>
+        {state === 'done'
+          ? 'Done. Every scoreboard and TV now shows the latest data.'
+          : state !== 'idle' && state !== 'busy'
+            ? state
+            : 'Use this after wiping or editing data directly in the database.'}
+      </span>
+    </section>
   );
 }
 

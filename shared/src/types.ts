@@ -41,6 +41,8 @@ export interface StandingDTO {
   gap_to_leader: number;
   /** 0–100, relative to the leader's total. */
   bar_pct: number;
+  /** Admin-defined display order (stable card order on the Judge Pad). */
+  sort_order: number;
 }
 
 export interface AwardDTO {

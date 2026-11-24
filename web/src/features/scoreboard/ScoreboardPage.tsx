@@ -19,11 +19,14 @@ function usePublicEvents() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => alive && d && setEvents(d as PublicEventsResponse))
         .catch(() => {});
+    // Once per page view, plus when a backgrounded tab returns. No interval: with ~1,000
+    // phones a 60 s poll alone would exceed the Workers free tier (100k requests/day).
     void load();
-    const id = setInterval(load, 60_000);
+    const onVisible = () => document.visibilityState === 'visible' && void load();
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       alive = false;
-      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
   return events;

@@ -1,9 +1,8 @@
-// After any write that can change public data: refresh the Cache API entry and push a
-// snapshot to the ScoreHub Durable Object(s), which fan it out to connected screens.
+// After any write that can change public data: drop the Cache API entry and signal the
+// ScoreHub Durable Object, which rebuilds the snapshot from D1 and fans it out to screens.
 import type { Context } from 'hono';
-import type { LiveMessage, PublicScoreboard } from '@housecup/shared/types';
+import type { PublicScoreboard } from '@housecup/shared/types';
 import type { AppEnv, Env } from '../env.ts';
-import { buildEventScoreboard, buildSeasonScoreboard } from './scoreboard.ts';
 import { getEventById, type EventRow } from './rows.ts';
 
 export const SEASON_HUB = 'season';
@@ -25,27 +24,23 @@ export function scoreboardResponse(sb: PublicScoreboard): Response {
   });
 }
 
-async function cachePut(key: Request, sb: PublicScoreboard) {
+async function purge(key: Request) {
   try {
-    await caches.default.put(key, scoreboardResponse(sb));
+    await caches.default.delete(key);
   } catch {
-    // Cache API is best-effort (no-op on some hostnames); D1 remains the source of truth.
+    // Cache API is best-effort (no-op on some hostnames); entries also expire after 3 s.
   }
 }
 
-async function pushHub(env: Env, name: string, sb: PublicScoreboard) {
-  const msg: LiveMessage = { t: 'snapshot', data: sb };
-  await env.SCORE_HUB.get(env.SCORE_HUB.idFromName(name)).publish(JSON.stringify(msg));
-}
+const hub = (env: Env, name: string) => env.SCORE_HUB.get(env.SCORE_HUB.idFromName(name));
 
 export async function publishEventRow(env: Env, origin: string, event: EventRow) {
-  const sb = await buildEventScoreboard(env.DB, event);
-  await Promise.all([cachePut(eventCacheKey(origin, event.slug), sb), pushHub(env, eventHubName(event.id), sb)]);
+  const name = eventHubName(event.id);
+  await Promise.all([purge(eventCacheKey(origin, event.slug)), hub(env, name).refresh(name)]);
 }
 
 export async function publishSeason(env: Env, origin: string) {
-  const sb = await buildSeasonScoreboard(env.DB);
-  await Promise.all([cachePut(seasonCacheKey(origin), sb), pushHub(env, SEASON_HUB, sb)]);
+  await Promise.all([purge(seasonCacheKey(origin)), hub(env, SEASON_HUB).refresh(SEASON_HUB)]);
 }
 
 export async function publish(env: Env, origin: string, eventId: number | null, opts: { season?: boolean } = {}) {

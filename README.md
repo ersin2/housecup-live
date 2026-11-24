@@ -1,5 +1,7 @@
 # HouseCup Live
 
+> Deploying or preparing for an event? See **[DEPLOY.md](DEPLOY.md)**.
+
 A real-time scoreboard and judging platform for school houses and tournaments, built to run on the Cloudflare free tier ($0/month).
 
 ```
@@ -41,7 +43,7 @@ The judge cookie is `Secure`, so most phone browsers only keep it over HTTPS or 
 ```bash
 npm run build      # typechecks, then writes the SPA to web/dist
 npm run dev        # Wrangler now also serves web/dist on :8787 (one origin, like production)
-npm test           # 56 Worker tests inside the Workers runtime against real D1
+npm test           # 59 Worker tests inside the Workers runtime against real D1
 ```
 
 To find the demo judge PINs:

@@ -1,5 +1,5 @@
-// Live scoreboard data: WebSocket push from the ScoreHub Durable Object, with ETag polling
-// as a fallback. Hidden phone tabs disconnect after a minute to save free-tier connections.
+// Live scoreboard data: WebSocket push from the ScoreHub Durable Object (first snapshot on
+// connect, no D1 read), with ETag polling only as a fallback. Hidden phone tabs disconnect after a minute to save free-tier connections.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LiveMessage, PublicScoreboard } from '@housecup/shared/types';
 
@@ -9,6 +9,7 @@ export type LiveStatus = 'connecting' | 'live' | 'polling' | 'offline';
 const POLL_MS = 15_000;
 const STALE_MS = 80_000; // server heartbeat is every 50 s
 const HIDDEN_DISCONNECT_MS = 60_000;
+const FALLBACK_MS = 4_000;
 
 function query(scope: LiveScope): string {
   if (scope.kind === 'event') return `?event=${encodeURIComponent(scope.slug)}`;
@@ -36,6 +37,9 @@ export function useLiveScoreboard(scope: LiveScope) {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let staleTimer: ReturnType<typeof setInterval> | undefined;
     let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let gotSnapshot = false;
+    let dead = false; // unknown event: stop trying
     let failures = 0;
     let lastMessage = Date.now();
     etag.current = null;
@@ -43,14 +47,22 @@ export function useLiveScoreboard(scope: LiveScope) {
     setError(null);
     setStatus('connecting');
 
+    const hidden = () => document.visibilityState === 'hidden';
+
     const poll = async () => {
+      if (hidden()) return; // a backgrounded tab costs nothing
       try {
         const res = await fetch(`/api/public/scoreboard${q}`, {
           headers: etag.current ? { 'If-None-Match': `"${etag.current}"` } : {},
         });
         if (res.status === 304) return;
         if (!res.ok) {
-          if (res.status === 404) setError({ status: 404 });
+          if (res.status === 404) {
+            dead = true;
+            stopPolling();
+            clearTimeout(retryTimer);
+            setError({ status: 404 });
+          }
           return;
         }
         accept((await res.json()) as PublicScoreboard);
@@ -69,8 +81,20 @@ export function useLiveScoreboard(scope: LiveScope) {
       pollTimer = undefined;
     };
 
+    // The hub sends a full snapshot (from its own storage, no D1 read) right after the socket opens.
+    // Only if nothing arrives within FALLBACK_MS do we pay for an HTTP read.
+    const armFallback = () => {
+      if (fallbackTimer !== undefined) return; // reconnect attempts must not postpone it
+      fallbackTimer = setTimeout(() => {
+        fallbackTimer = undefined;
+        if (!gotSnapshot) void poll();
+      }, FALLBACK_MS);
+    };
+
     const connect = () => {
-      if (disposed || document.visibilityState === 'hidden') return;
+      if (disposed || dead || document.visibilityState === 'hidden') return;
+      gotSnapshot = false;
+      armFallback();
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
       try {
         ws = new WebSocket(`${proto}://${location.host}/api/public/live${q}`);
@@ -89,15 +113,25 @@ export function useLiveScoreboard(scope: LiveScope) {
         if (e.data === 'pong') return;
         try {
           const msg = JSON.parse(e.data as string) as LiveMessage;
-          if (msg.t === 'snapshot') accept(msg.data);
+          if (msg.t === 'snapshot') {
+            gotSnapshot = true;
+            accept(msg.data);
+          }
         } catch {
           // ignore malformed frames
         }
       };
       ws.onclose = () => {
         ws = null;
-        if (disposed) return;
+        if (disposed || dead) return;
+        // Closed because the tab went to the background: stay fully idle until it is visible again.
+        if (hidden()) {
+          stopPolling();
+          clearTimeout(retryTimer);
+          return;
+        }
         setStatus((s) => (s === 'live' ? 'polling' : s));
+        if (!gotSnapshot) void poll(); // socket failed before delivering data (blocked WS, 404): fetch now
         startPolling();
         scheduleReconnect();
       };
@@ -119,13 +153,17 @@ export function useLiveScoreboard(scope: LiveScope) {
         }, HIDDEN_DISCONNECT_MS);
       } else {
         clearTimeout(hiddenTimer);
-        void poll();
-        if (!ws) connect();
-        else if (ws.readyState === WebSocket.OPEN) ws.send('ping'); // answered by auto-response
+        if (!ws) {
+          failures = 0;
+          clearTimeout(retryTimer);
+          setStatus('connecting');
+          connect();
+        } else if (ws.readyState === WebSocket.OPEN) {
+          ws.send('ping'); // answered by the hub's auto-response
+        }
       }
     };
 
-    void poll(); // fast first paint from the edge cache
     connect();
     staleTimer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN && Date.now() - lastMessage > STALE_MS) ws.close();
@@ -139,6 +177,7 @@ export function useLiveScoreboard(scope: LiveScope) {
       window.removeEventListener('online', onVisibility);
       clearTimeout(retryTimer);
       clearTimeout(hiddenTimer);
+      clearTimeout(fallbackTimer);
       clearInterval(staleTimer);
       stopPolling();
       ws?.close(1000, 'unmount');
